@@ -1,0 +1,14 @@
+syntax="proto3";
+package wordfilter;
+
+service WordFilterService{
+    rpc ContainsSensitiveWord(ContainSensitiveWordRequest) returns (ContainSensitiveWordResponse){}
+}
+
+message ContainSensitiveWordRequest{
+    string text = 1;
+}
+
+message ContainSensitiveWordResponse{
+    bool isSensitiveWord = 1;
+}
