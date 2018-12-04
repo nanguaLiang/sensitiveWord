@@ -18,7 +18,7 @@ func main() {
 
 	c := pb.NewWordFilterServiceClient(connection)
 
-	text := "淫荡"
+	text := "和谐"
 
 	if len(os.Args) > 1 {
 		log.Println(os.Args[0])

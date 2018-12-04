@@ -9,60 +9,31 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"errors"
 )
 
-var blackTrie *Trie
-var whitePrefixTrie *Trie
-var whiteSuffixTrie *Trie
-var projectRoot = fmt.Sprintf("%s/src/Exercise/RPC/sensitiveWord/",os.Getenv("GOPATH"))
-// InitAllTrie 初始化三种Trie
-func InitAllTrie() {
-	BlackTrie()
-	WhitePrefixTrie()
-	WhiteSuffixTrie()
+//var blackTrie *Trie
+
+
+// InitTrie 初始化Trie
+func InitTrie() *Trie{
+	projectRoot := fmt.Sprintf("%s/src/Exercise/RPC/sensitiveWord",os.Getenv("GOPATH"))
+	dirPath := projectRoot+"/dicts"
+	trie:=NewTrie()
+	loadDict(trie,dirPath)
+	return trie
 }
 
 // BlackTrie 返回黑名单Trie树
-func BlackTrie() *Trie {
-	if blackTrie == nil {
-		blackTrie = NewTrie()
-		blackTrie.CheckWhiteList = true
-		loadDict(blackTrie, "add", projectRoot+"dicts/black/default")
-		loadDict(blackTrie, "del", projectRoot+"dicts/black/exclude")
-	}
-	return blackTrie
-}
+//func BlackTrie(dirPath string) *Trie {
+//	if blackTrie == nil {
+//		blackTrie = NewTrie()
+//		loadDict(blackTrie,dirPath)
+//	}
+//	return blackTrie
+//}
 
-// WhitePrefixTrie 返回白名单前缀Trie树
-func WhitePrefixTrie() *Trie {
-	if whitePrefixTrie == nil {
-		whitePrefixTrie = NewTrie()
-		loadDict(whitePrefixTrie, "add", projectRoot+"dicts/white/prefix")
-	}
-	return whitePrefixTrie
-}
-
-// ClearWhitePrefixTrie 清空白名单前缀Trie树
-func ClearWhitePrefixTrie() {
-	whitePrefixTrie = NewTrie()
-}
-
-// WhiteSuffixTrie 返回白名单后缀Trie树
-func WhiteSuffixTrie() *Trie {
-	if whiteSuffixTrie == nil {
-		whiteSuffixTrie = NewTrie()
-		loadDict(whiteSuffixTrie, "add", projectRoot+"dicts/white/suffix")
-	}
-	return whiteSuffixTrie
-}
-
-// ClearWhiteSuffixTrie 清空白名单后缀Trie树
-func ClearWhiteSuffixTrie() {
-	whiteSuffixTrie = NewTrie()
-}
-
-func loadDict(trieHandle *Trie, op, path string) {
-
+func loadDict(trieHandle *Trie, path string) {
 	var loadAllDictWalk filepath.WalkFunc = func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return err
@@ -71,7 +42,7 @@ func loadDict(trieHandle *Trie, op, path string) {
 			return nil
 		}
 
-		initTrie(trieHandle, op, path)
+		initTrie(trieHandle,path)
 
 		return nil
 	}
@@ -82,7 +53,7 @@ func loadDict(trieHandle *Trie, op, path string) {
 	}
 }
 
-func initTrie(trieHandle *Trie, op, path string) (err error) {
+func initTrie(trieHandle *Trie,path string) (err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		panic(fmt.Sprintf("fail to open file %s %s", path, err.Error()))
@@ -108,15 +79,51 @@ func initTrie(trieHandle *Trie, op, path string) (err error) {
 		if word := strings.TrimSpace(string(line)); word != "" {
 			tmp := strings.Split(word, " ")
 			s := strings.Trim(tmp[0], " ")
-
-			if "add" == op {
-				trieHandle.Add(s)
-
-			} else if "del" == op {
-				trieHandle.Del(s)
-			}
+			trieHandle.Add(s)
 		}
 	}
 
 	return
+}
+
+//通过敏感词数组去构建trie树
+func buildTrieByWords(trie *Trie,words []string) error{
+	if len(words)==0{
+		return errors.New("the words are nil")
+	}
+	for _,word:=range words{
+		trie.Add(word)
+	}
+	return nil
+}
+
+//通过读文件去获取敏感词数组
+func readFile(path string)(words []string,err error){
+	f, err := os.Open(path)
+	if err != nil {
+		panic(fmt.Sprintf("fail to open file %s %s", path, err.Error()))
+	}
+	defer f.Close()
+
+	buf := bufio.NewReader(f)
+	for {
+		line, isPrefix, e := buf.ReadLine()
+		if e != nil {
+			if e != io.EOF {
+				err = e
+			}
+			break
+		}
+		if isPrefix {
+			continue
+		}
+
+		if word := strings.TrimSpace(string(line)); word != "" {
+			tmp := strings.Split(word, " ")
+			s := strings.Trim(tmp[0], " ")
+			words=append(words, s)
+		}
+	}
+	return
+
 }
